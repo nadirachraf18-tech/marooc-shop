@@ -21,7 +21,28 @@ $("#loginForm").addEventListener("submit",async e=>{e.preventDefault();$("#login
 $("#logout").onclick=async()=>{await db.auth.signOut();showLogin();};
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".section").forEach(x=>x.classList.toggle("active",x.id===b.dataset.tab));});
 async function loadAll(){await Promise.all([loadOrders(),loadProducts(),loadSettings()]);}
-async function loadOrders(){const {data,error}=await db.from("orders").select("*").order("created_at",{ascending:false}).limit(200);if(error){$("#ordersBody").innerHTML='<tr><td colspan="7">Erreur de chargement.</td></tr>';return;}$("#statOrders").textContent=data.length;$("#statRevenue").textContent=money(data.filter(x=>x.status==="delivered").reduce((a,x)=>a+Number(x.total),0));$("#ordersEmpty").classList.toggle("hidden",data.length>0);$("#ordersBody").innerHTML=data.map(o=>'<tr><td>#'+o.order_number+'</td><td>'+esc(o.customer_name)+'<br><span class="muted">'+esc(o.city)+'</span></td><td>'+esc(o.phone)+'<br>'+esc(o.address)+'</td><td>'+esc(o.product_name)+' × '+o.quantity+'</td><td>'+money(o.total)+'</td><td>'+new Date(o.created_at).toLocaleDateString("fr-FR")+'</td><td><select class="status" data-status="'+o.id+'">'+["pending","confirmed","shipped","delivered","cancelled"].map(s=>'<option value="'+s+'" '+(s===o.status?'selected':'')+'>'+s+'</option>').join("")+'</select></td></tr>').join("");document.querySelectorAll("[data-status]").forEach(s=>s.onchange=async()=>{const {error}=await db.from("orders").update({status:s.value,updated_at:new Date().toISOString()}).eq("id",s.dataset.status);if(error)alert(error.message);else loadOrders();});}
+async function loadOrders(){
+ const {data,error}=await db.from("orders").select("*").order("created_at",{ascending:false}).limit(500);
+ if(error){$("#ordersBody").innerHTML='<tr><td colspan="7">Erreur de chargement.</td></tr>';return;}
+ const grouped=new Map();
+ data.forEach(row=>{const key=row.order_group_id||("legacy-"+row.id);if(!grouped.has(key))grouped.set(key,{key,groupId:row.order_group_id||null,rows:[],first:row,total:0});const group=grouped.get(key);group.rows.push(row);group.total+=Number(row.total||0);});
+ const orders=[...grouped.values()];
+ $("#statOrders").textContent=orders.length;
+ $("#statRevenue").textContent=money(data.filter(x=>x.status==="delivered").reduce((sum,row)=>sum+Number(row.total||0),0));
+ $("#ordersEmpty").classList.toggle("hidden",orders.length>0);
+ $("#ordersBody").innerHTML=orders.map(group=>{
+  const o=group.first;
+  const products=group.rows.map(row=>esc(row.product_name)+" × "+row.quantity).join("<br>");
+  return '<tr><td>#'+o.order_number+'<br><span class="muted">'+(group.groupId?'Commande groupée':'')+'</span></td><td>'+esc(o.customer_name)+'<br><span class="muted">'+esc(o.city)+'</span></td><td>'+esc(o.phone)+'<br>'+esc(o.address)+'</td><td>'+products+'</td><td>'+money(group.total)+'</td><td>'+new Date(o.created_at).toLocaleDateString("fr-FR")+'</td><td><select class="status" data-status="'+group.key+'">'+["pending","confirmed","shipped","delivered","cancelled"].map(status=>'<option value="'+status+'" '+(status===o.status?'selected':'')+'>'+status+'</option>').join("")+'</select></td></tr>';
+ }).join("");
+ document.querySelectorAll("[data-status]").forEach(select=>select.onchange=async()=>{
+  const group=grouped.get(select.dataset.status);
+  let query=db.from("orders").update({status:select.value,updated_at:new Date().toISOString()});
+  query=group.groupId?query.eq("order_group_id",group.groupId):query.eq("id",group.first.id);
+  const {error}=await query;
+  if(error)alert(error.message);else loadOrders();
+ });
+}
 async function loadProducts(){const {data,error}=await db.from("products").select("*").order("created_at",{ascending:false});if(error)return;$("#statProducts").textContent=data.filter(p=>p.active).length;$("#productsList").innerHTML=data.map(p=>'<div style="display:flex;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid #eee"><img class="thumb" src="'+(p.image_url||'')+'" onerror="this.style.visibility=\'hidden\'"><div style="flex:1"><b>'+esc(p.name)+'</b><div class="muted">'+money(p.price)+' · Stock '+p.stock+'</div></div><div class="actions"><button class="small soft" data-edit="'+p.id+'">Modifier</button><button class="small danger" data-delete="'+p.id+'">Supprimer</button></div></div>').join("")||'<p class="empty">Aucun produit.</p>';document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>editProduct(data.find(p=>p.id===b.dataset.edit)));document.querySelectorAll("[data-delete]").forEach(b=>b.onclick=async()=>{if(!confirm("Supprimer ce produit ?"))return;const {error}=await db.from("products").delete().eq("id",b.dataset.delete);if(error)alert(error.message);else loadProducts();});}
 function editProduct(p){const f=$("#productForm");for(const k of ["id","name","price","compare_at_price","stock","description"])f.elements[k].value=p[k]??"";f.elements.active.checked=p.active;$("#productFormTitle").textContent="Modifier le produit";window.scrollTo({top:0,behavior:"smooth"});}
 $("#resetProduct").onclick=()=>{ $("#productForm").reset();$("#productForm").elements.id.value="";$("#productFormTitle").textContent="Ajouter un produit";};
