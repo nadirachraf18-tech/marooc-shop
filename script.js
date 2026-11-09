@@ -13,6 +13,28 @@ const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => 
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
 }[char]));
 
+
+function formatDescription(value, compact = false) {
+  let source = String(value || "Découvrez ce produit.").replace(/\r/g, "").trim();
+  if (compact) {
+    source = source.replace(/^#{1,6}\s*/gm, "").replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*(.*?)\*/g, "$1").replace(/\s+/g, " ");
+    if (source.length > 155) source = source.slice(0, 152).trimEnd() + "…";
+    return "<p>" + escapeHtml(source) + "</p>";
+  }
+  return source.split(/\n+/).map((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return "";
+    const safe = escapeHtml(trimmed)
+      .replace(/^###\s+(.+)$/, "<h3>$1</h3>")
+      .replace(/^##\s+(.+)$/, "<h2>$1</h2>")
+      .replace(/^#\s+(.+)$/, "<h2>$1</h2>")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>");
+    if (/^[-•]\s/.test(trimmed)) return "<li>" + safe.replace(/^[-•]\s*/, "") + "</li>";
+    return safe.startsWith("<h") ? safe : "<p>" + safe + "</p>";
+  }).join("").replace(/(?:<li>.*?<\/li>)+/g, (list) => "<ul>" + list + "</ul>");
+}
+
 function whatsappNumber() {
   const number = String(state.settings.whatsapp_number || "212656219486").replace(/\D/g, "");
   return number.startsWith("0") ? "212" + number.slice(1) : number;
@@ -52,7 +74,7 @@ function renderProducts() {
         ? '<img src="' + escapeHtml(product.image_url) + '" alt="' + escapeHtml(product.name) + '">'
         : '<div class="image-placeholder">MAROOC<br><b>SHOP</b></div>') +
     '</div><div class="product-info"><h3>' + escapeHtml(product.name) + '</h3>' +
-    '<p>' + escapeHtml(product.description || "Découvrez ce produit.") + '</p>' +
+    '<div class="product-description">' + formatDescription(product.description, true) + '</div>' +
     '<div class="product-price"><strong>' + money(product.price) + '</strong>' +
     (product.compare_at_price > product.price ? '<del>' + money(product.compare_at_price) + '</del>' : '') +
     '</div><small>' + (product.stock > 0 ? "En stock" : "Disponible sur commande") + '</small>' +
@@ -87,7 +109,7 @@ function openProductDetails(product) {
     ? product.gallery_images
     : [product.image_url].filter(Boolean);
   $("#detailTitle").textContent = product.name;
-  $("#detailDescription").textContent = product.description || "Découvrez ce produit.";
+  $("#detailDescription").innerHTML = formatDescription(product.description, false);
   $("#detailPrice").textContent = money(product.price);
   $("#detailImage").src = images[0] || "";
   $("#detailThumbs").innerHTML = images.map((src, index) =>
