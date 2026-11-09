@@ -56,3 +56,23 @@
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #bca6ee;outline-offset:2px}
 @media(max-width:760px){.product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.product-image{height:190px}.product-info{padding:13px}.product-info h3{font-size:14px}.product-info .product-price strong{font-size:18px}.quick-order{width:39px;height:39px;flex-basis:39px}.product-detail-layout{grid-template-columns:1fr}.detail-copy{position:static}.detail-main-image{height:300px}.product-modal{padding:16px;max-height:94vh}}
 @media(max-width:420px){.product-grid{grid-template-columns:1fr}.product-image{height:230px}}
+
+
+/* Product media and cart usability */
+.product-image{position:relative;overflow:hidden}
+.product-image img{width:100%;height:100%;object-fit:contain;display:block}
+.product-discount,.product-media-badge{position:absolute;top:12px;padding:6px 9px;border-radius:7px;font-size:10px;font-weight:800;z-index:1}
+.product-discount{left:12px;background:#25163f;color:#fff}
+.product-media-badge{right:12px;background:#fff;color:var(--purple);box-shadow:0 3px 12px #24163318}
+.cart-item{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+.cart-item-image{width:58px;height:58px;object-fit:contain;border-radius:9px;background:#f7f4fa;flex:none}
+.cart-item-info{display:grid;gap:5px;flex:1;min-width:0}
+.cart-item-info b{font-size:12px;line-height:1.4}
+.cart-item-info small{font-size:10px;color:var(--muted)}
+.cart-item-controls{display:flex;align-items:center;gap:8px}
+.cart-item-controls button{padding:4px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
+.cart-item-controls .cart-remove{border:0;background:transparent;color:#b43e55;font-size:10px;padding:4px}
+.cart-item>strong{font-size:12px;white-space:nowrap}
+.detail-main-image{cursor:zoom-in;transition:transform .25s;transform-origin:center}
+.detail-main-image.zoomed{transform:scale(1.65);cursor:zoom-out}
+@media(max-width:650px){.cart-item{gap:8px}.cart-item-image{width:48px;height:48px}.cart-item>strong{font-size:11px}}
