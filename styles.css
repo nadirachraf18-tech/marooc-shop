@@ -4,3 +4,24 @@
 /* Compact admin access in the storefront header */
 .header-actions{display:flex;align-items:center;gap:14px}.admin-entry{font-size:12px;font-weight:700;color:#81798d;padding:9px 11px;border-radius:8px;transition:.2s}.admin-entry:hover{color:var(--purple);background:var(--lav)}
 @media(max-width:600px){.site-header{padding:0 16px}.site-header nav{gap:12px}.header-actions{gap:6px}.admin-entry{font-size:11px;padding:8px 6px}.header-cta{padding:9px 10px;font-size:12px}}
+
+/* Smart Laundry Cup product gallery */
+.details-button{display:block;width:100%;margin-top:10px;border:0;background:transparent;color:var(--purple);font:700 12px "DM Sans",sans-serif;padding:8px;cursor:pointer}
+.product-modal{background:#fff;border-radius:18px;padding:25px;width:min(900px,100%);max-height:92vh;overflow:auto;box-shadow:0 25px 80px #160d2b44}
+.product-detail-layout{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:18px;align-items:start}
+.detail-main-image{width:100%;height:360px;object-fit:contain;background:#f7f4fc;border-radius:14px}
+.detail-thumbs{display:flex;gap:9px;margin-top:10px;flex-wrap:wrap}
+.detail-thumb{width:70px;height:70px;padding:3px;border:1px solid #e9e3f1;border-radius:9px;background:#fff;cursor:pointer}
+.detail-thumb.active{border:2px solid var(--purple)}
+.detail-thumb img{width:100%;height:100%;object-fit:contain}
+.detail-copy{padding:12px 0}
+.detail-tag{display:inline-block;background:#f1ebff;color:var(--purple);font-size:9px;font-weight:800;letter-spacing:.12em;padding:8px 10px;border-radius:6px}
+.detail-copy p{font-size:13px;line-height:1.8;color:var(--muted)}
+.detail-price{display:block;font-size:29px;color:var(--purple);margin:18px 0}
+.detail-note{font-size:11px!important;background:#faf8fd;padding:12px;border-radius:9px}
+.detail-copy .btn{width:100%;margin-top:12px}
+.detail-video-wrap{margin-top:28px;padding-top:22px;border-top:1px solid var(--line);display:grid;gap:12px}
+.detail-video-wrap h3{margin:7px 0 0;font-size:19px}
+.detail-video-wrap video{width:100%;max-height:380px;background:#160d2b;border-radius:12px}
+.detail-video-wrap a{font-size:11px;color:var(--purple);text-decoration:underline}
+@media(max-width:650px){.product-modal{padding:17px}.product-detail-layout{grid-template-columns:1fr;gap:14px}.detail-main-image{height:280px}.detail-copy{padding:0}.product-modal .drawer-head h2{font-size:19px}}
