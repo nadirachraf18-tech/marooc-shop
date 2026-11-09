@@ -114,7 +114,9 @@ function openProductDetails(product) {
   $("#detailTitle").textContent = product.name;
   $("#detailDescription").innerHTML = formatDescription(product.description, false);
   $("#detailPrice").textContent = money(product.price);
-  $("#detailImage").src = images[0] || "";\n  $("#detailImage").classList.remove("zoomed");\n  $("#detailImage").onclick = () => $("#detailImage").classList.toggle("zoomed");
+  $("#detailImage").src = images[0] || "";
+  $("#detailImage").classList.remove("zoomed");
+  $("#detailImage").onclick = () => $("#detailImage").classList.toggle("zoomed");
   $("#detailThumbs").innerHTML = images.map((src, index) =>
     '<button class="detail-thumb ' + (index === 0 ? "active" : "") + '" data-detail-image="' + index + '" type="button"><img src="' + escapeHtml(src) + '" alt="' + escapeHtml(product.name) + '"></button>'
   ).join("");
