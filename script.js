@@ -6,7 +6,8 @@ const money = (value) => Number(value || 0).toLocaleString("fr-FR") + " DH";
 const state = {
   products: [],
   cart: new Map(),
-  settings: { whatsapp_number: "212656219486", delivery_fee: 0 }
+  settings: { whatsapp_number: "212656219486", delivery_fee: 0 },
+  shippingRates: []
 };
 
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -41,11 +42,12 @@ function whatsappNumber() {
 }
 
 async function init() {
-  const [{ data: products, error }, { data: settings }] = await Promise.all([
+  const [{ data: products, error }, { data: settings }, { data: shippingRates }] = await Promise.all([
     db.from("products")
       .select("id,name,slug,description,price,compare_at_price,stock,image_url,gallery_images,video_url,video_source_url,active,created_at")
       .eq("active", true).order("created_at", { ascending: false }),
-    db.from("store_settings").select("whatsapp_number,delivery_fee").eq("id", 1).maybeSingle()
+    db.from("store_settings").select("whatsapp_number,delivery_fee").eq("id", 1).maybeSingle(),
+    db.from("shipping_rates").select("city,fee,min_delivery_days,max_delivery_days").eq("active", true).order("city")
   ]);
 
   if (error) {
@@ -55,6 +57,15 @@ async function init() {
 
   state.products = products || [];
   if (settings) state.settings = { ...state.settings, ...settings };
+  state.shippingRates = shippingRates || [];
+  const cityInput = document.querySelector("#checkoutForm [name=city]");
+  if (cityInput && state.shippingRates.length) {
+    cityInput.setAttribute("list", "shippingCities");
+    const dl = document.createElement("datalist"); dl.id = "shippingCities";
+    dl.innerHTML = state.shippingRates.map(r => '<option value="' + escapeHtml(r.city) + '"></option>').join("");
+    cityInput.after(dl);
+    cityInput.addEventListener("input", renderCart);
+  }
   $("#contactWhatsApp").href = "https://wa.me/" + whatsappNumber();
   renderProducts();
 }
@@ -165,7 +176,9 @@ function renderCart() {
   const items = [...state.cart.values()];
   const count = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const delivery = Number(state.settings.delivery_fee || 0);
+  const city = document.querySelector("#checkoutForm [name=city]")?.value?.trim().toLowerCase() || "";
+  const matchedRate = state.shippingRates.find(r => r.city.trim().toLowerCase() === city);
+  const delivery = matchedRate ? Number(matchedRate.fee) : Number(state.settings.delivery_fee || 0);
 
   $("#cartCount").textContent = count;
   $("#cartSubtotal").textContent = money(subtotal);
@@ -217,14 +230,28 @@ $("#checkoutForm").onsubmit = async (event) => {
   const items = [...state.cart.values()];
   if (!items.length) return;
 
-  const delivery = Number(state.settings.delivery_fee || 0);
-  const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const total = subtotal + delivery;
+  const cityValue = String(form.get("city") || "").trim();
+  const matchedRate = state.shippingRates.find(r => r.city.trim().toLowerCase() === cityValue.toLowerCase());
+  const delivery = matchedRate ? Number(matchedRate.fee) : Number(state.settings.delivery_fee || 0);
+  let subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  let total = subtotal + delivery;
+
   const orderGroupId = crypto.randomUUID();
   const submitButton = $("#submitOrder");
   submitButton.disabled = true;
 
   try {
+    const ids = items.map(item => item.product.id);
+    const { data: latestProducts, error: stockError } = await db.from("products").select("id,name,price,stock,active").in("id", ids);
+    if (stockError) throw stockError;
+    for (const item of items) {
+      const latest = latestProducts.find(p => p.id === item.product.id);
+      if (!latest || !latest.active) throw new Error("Le produit " + item.product.name + " n’est plus disponible.");
+      if (Number(latest.stock) > 0 && item.quantity > Number(latest.stock)) throw new Error("Stock insuffisant pour " + latest.name + ". Quantité disponible : " + latest.stock);
+      item.product.price = Number(latest.price);
+    }
+    subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+    total = subtotal + delivery;
     const rows = items.map((item, index) => ({
       order_group_id: orderGroupId,
       customer_name: form.get("name"),
