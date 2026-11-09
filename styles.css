@@ -76,3 +76,16 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .detail-main-image{cursor:zoom-in;transition:transform .25s;transform-origin:center}
 .detail-main-image.zoomed{transform:scale(1.65);cursor:zoom-out}
 @media(max-width:650px){.cart-item{gap:8px}.cart-item-image{width:48px;height:48px}.cart-item>strong{font-size:11px}}
+
+
+/* Product card hierarchy: price + quick order action on one row, full CTA below */
+.product-order-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;padding-top:14px}
+.product-order-row .product-price{margin:0;min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}
+.product-order-row .product-price strong{font-size:22px;line-height:1.2}
+.product-order-row .product-price del{font-size:12px}
+.product-order-row .quick-order{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border:1px solid #e3d8f4;border-radius:12px;background:#f7f2ff;color:var(--purple);cursor:pointer;transition:background .2s,color .2s,transform .2s}
+.product-order-row .quick-order:hover{background:var(--purple);color:#fff;transform:translateY(-1px)}
+.product-order-row .quick-order svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.product-info .add-cart{display:flex;width:100%;min-height:46px;margin-top:11px;align-items:center;justify-content:center}
+.product-info small{margin-top:9px;font-size:11px}
+@media(max-width:480px){.product-order-row .product-price strong{font-size:19px}.product-order-row .quick-order{flex-basis:40px;width:40px;height:40px}}
