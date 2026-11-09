@@ -64,7 +64,13 @@ async function init() {
     const dl = document.createElement("datalist"); dl.id = "shippingCities";
     dl.innerHTML = state.shippingRates.map(r => '<option value="' + escapeHtml(r.city) + '"></option>').join("");
     cityInput.after(dl);
-    cityInput.addEventListener("input", renderCart);
+    cityInput.addEventListener("input", () => {
+      renderCart();
+      const city = cityInput.value.trim().toLowerCase();
+      const rate = state.shippingRates.find(r => r.city.trim().toLowerCase() === city);
+      const note = document.querySelector("#deliveryEstimate");
+      if (note) note.textContent = rate ? "Livraison : " + money(rate.fee) + " · Délai estimé : " + rate.min_delivery_days + " à " + rate.max_delivery_days + " jours." : "Tarif standard : " + money(state.settings.delivery_fee) + ". Délai à confirmer.";
+    });
   }
   $("#contactWhatsApp").href = "https://wa.me/" + whatsappNumber();
   renderProducts();
