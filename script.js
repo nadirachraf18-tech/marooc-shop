@@ -15,23 +15,23 @@ const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => 
 
 
 function formatDescription(value, compact = false) {
-  let source = String(value || "Découvrez ce produit.").replace(/\r/g, "").replace(/#{1,6}\s*/g, "\n").trim();
+  const source = String(value || "Découvrez ce produit.").replace(/\r/g, "").trim();
   if (compact) {
-    source = source.replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*(.*?)\*/g, "$1").replace(/\p{Extended_Pictographic}/gu, "").replace(/\s+/g, " ").trim();
-    if (source.length > 155) source = source.slice(0, 152).trimEnd() + "…";
-    return "<p>" + escapeHtml(source) + "</p>";
+    let plain = source.replace(/^#{1,6}\s*/gm, "").replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*(.*?)\*/g, "$1").replace(/\p{Extended_Pictographic}/gu, "").replace(/\s+/g, " ").trim();
+    if (plain.length > 155) plain = plain.slice(0, 152).trimEnd() + "…";
+    return "<p>" + escapeHtml(plain) + "</p>";
   }
   return source.split(/\n+/).map((line) => {
     const trimmed = line.trim();
     if (!trimmed) return "";
-    const safe = escapeHtml(trimmed)
-      .replace(/^###\s+(.+)$/, "<h3>$1</h3>")
-      .replace(/^##\s+(.+)$/, "<h2>$1</h2>")
-      .replace(/^#\s+(.+)$/, "<h2>$1</h2>")
+    const heading = trimmed.match(/^(#{1,3})\s+(.+)$/);
+    const isList = /^[-•]\s/.test(trimmed);
+    const safe = escapeHtml(heading ? heading[2] : isList ? trimmed.replace(/^[-•]\s*/, "") : trimmed)
       .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
       .replace(/\*(.+?)\*/g, "<em>$1</em>");
-    if (/^[-•]\s/.test(trimmed)) return "<li>" + safe.replace(/^[-•]\s*/, "") + "</li>";
-    return safe.startsWith("<h") ? safe : "<p>" + safe + "</p>";
+    if (heading) return (heading[1].length === 3 ? "<h3>" : "<h2>") + safe + (heading[1].length === 3 ? "</h3>" : "</h2>");
+    if (isList) return "<li>" + safe + "</li>";
+    return "<p>" + safe + "</p>";
   }).join("").replace(/(?:<li>.*?<\/li>)+/g, (list) => "<ul>" + list + "</ul>");
 }
 
@@ -112,7 +112,7 @@ function openProductDetails(product) {
   $("#detailTitle").textContent = product.name;
   $("#detailDescription").innerHTML = formatDescription(product.description, false);
   $("#detailPrice").textContent = money(product.price);
-  $("#detailImage").src = images[0] || "";
+  $("#detailImage").src = images[0] || "";\n  $("#detailImage").classList.remove("zoomed");\n  $("#detailImage").onclick = () => $("#detailImage").classList.toggle("zoomed");
   $("#detailThumbs").innerHTML = images.map((src, index) =>
     '<button class="detail-thumb ' + (index === 0 ? "active" : "") + '" data-detail-image="' + index + '" type="button"><img src="' + escapeHtml(src) + '" alt="' + escapeHtml(product.name) + '"></button>'
   ).join("");
