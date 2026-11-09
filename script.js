@@ -71,8 +71,10 @@ function renderProducts() {
   $("#productGrid").innerHTML = products.length ? products.map((product) =>
     '<article class="product-card"><div class="product-image">' +
       (product.image_url
-        ? '<img src="' + escapeHtml(product.image_url) + '" alt="' + escapeHtml(product.name) + '">'
+        ? '<img loading="lazy" src="' + escapeHtml(product.image_url) + '" alt="' + escapeHtml(product.name) + '">'
         : '<div class="image-placeholder">MAROOC<br><b>SHOP</b></div>') +
+      (product.compare_at_price > product.price ? '<span class="product-discount">-' + Math.round((1 - product.price / product.compare_at_price) * 100) + '%</span>' : '') +
+      (product.video_url ? '<span class="product-media-badge">▶ Vidéo</span>' : '') +
     '</div><div class="product-info"><h3>' + escapeHtml(product.name) + '</h3>' +
     '<div class="product-description">' + formatDescription(product.description, true) + '</div>' +
     '<div class="product-order-row"><div class="product-price"><strong>' + money(product.price) + '</strong>' +
@@ -168,17 +170,16 @@ function renderCart() {
   $("#cartDelivery").textContent = delivery ? money(delivery) : "GRATUITE";
   $("#cartTotal").textContent = money(subtotal + delivery);
   $("#cartItems").innerHTML = items.map((item) =>
-    '<div class="cart-item"><b>' + escapeHtml(item.product.name) + '</b> · ' +
-    item.quantity + ' × ' + money(item.product.price) +
-    ' <button data-minus="' + item.product.id + '">−</button>' +
-    ' <button data-plus="' + item.product.id + '">+</button></div>'
+    '<div class="cart-item"><img class="cart-item-image" src="' + escapeHtml(item.product.image_url || '') + '" alt="' + escapeHtml(item.product.name) + '" loading="lazy"><div class="cart-item-info"><b>' + escapeHtml(item.product.name) + '</b><small>' + money(item.product.price) + ' / unité</small><div class="cart-item-controls"><button type="button" data-minus="' + item.product.id + '" aria-label="Diminuer">−</button><span>' + item.quantity + '</span><button type="button" data-plus="' + item.product.id + '" aria-label="Augmenter">+</button><button type="button" class="cart-remove" data-remove="' + item.product.id + '">Supprimer</button></div></div><strong>' + money(item.product.price * item.quantity) + '</strong></div>'
   ).join("") || "Votre panier est vide.";
 
-  document.querySelectorAll("[data-minus],[data-plus]").forEach((button) => {
+  document.querySelectorAll("[data-minus],[data-plus],[data-remove]").forEach((button) => {
     button.onclick = () => {
-      const id = button.dataset.minus || button.dataset.plus;
+      const id = button.dataset.minus || button.dataset.plus || button.dataset.remove;
       const item = state.cart.get(id);
-      if (button.dataset.plus) item.quantity = Math.min(20, item.quantity + 1);
+      if (!item) return;
+      if (button.dataset.remove) state.cart.delete(id);
+      else if (button.dataset.plus) item.quantity = Math.min(20, item.quantity + 1);
       else item.quantity -= 1;
       if (item.quantity < 1) state.cart.delete(id);
       renderCart();
