@@ -25,3 +25,15 @@
 .detail-video-wrap video{width:100%;max-height:380px;background:#160d2b;border-radius:12px}
 .detail-video-wrap a{font-size:11px;color:var(--purple);text-decoration:underline}
 @media(max-width:650px){.product-modal{padding:17px}.product-detail-layout{grid-template-columns:1fr;gap:14px}.detail-main-image{height:280px}.detail-copy{padding:0}.product-modal .drawer-head h2{font-size:19px}}
+
+/* Product card and description polish */
+.product-grid:has(.product-card:only-child){grid-template-columns:minmax(280px,380px)}
+.product-card{align-self:start}
+.product-info p{line-height:1.55}
+.product-description p{margin:8px 0 12px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;min-height:0}
+.detail-copy #detailDescription{line-height:1.85;color:#625b6d}
+.detail-copy #detailDescription p{margin:0 0 12px}
+.detail-copy #detailDescription h2,.detail-copy #detailDescription h3{color:#2b213a;margin:18px 0 9px;line-height:1.35}
+.detail-copy #detailDescription ul{padding-left:20px;margin:8px 0 16px;color:#625b6d}
+.detail-copy #detailDescription li{margin:6px 0}
+@media(max-width:760px){.product-grid:has(.product-card:only-child){grid-template-columns:minmax(0,1fr)}}
