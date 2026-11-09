@@ -89,3 +89,5 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .product-info .add-cart{display:flex;width:100%;min-height:46px;margin-top:11px;align-items:center;justify-content:center}
 .product-info small{margin-top:9px;font-size:11px}
 @media(max-width:480px){.product-order-row .product-price strong{font-size:19px}.product-order-row .quick-order{flex-basis:40px;width:40px;height:40px}}
+
+.delivery-estimate{display:block;margin:-8px 0 12px;color:#6e6380;font-size:12px;line-height:1.5}
