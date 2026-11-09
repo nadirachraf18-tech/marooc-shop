@@ -17,7 +17,7 @@ const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => 
 function formatDescription(value, compact = false) {
   let source = String(value || "Découvrez ce produit.").replace(/\r/g, "").replace(/#{1,6}\s*/g, "\n").trim();
   if (compact) {
-    source = source.replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*(.*?)\*/g, "$1").replace(/\s+/g, " ");
+    source = source.replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*(.*?)\*/g, "$1").replace(/\p{Extended_Pictographic}/gu, "").replace(/\s+/g, " ").trim();
     if (source.length > 155) source = source.slice(0, 152).trimEnd() + "…";
     return "<p>" + escapeHtml(source) + "</p>";
   }
