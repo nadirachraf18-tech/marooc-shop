@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const db = createClient(window.MAROOOC_SUPABASE_URL, window.MAROOOC_SUPABASE_KEY);
 const $ = (selector) => document.querySelector(selector);
 const money = (value) => Number(value || 0).toLocaleString("fr-FR") + " DH";
+const unitPriceFor = (product, quantity = 1) => product.offer_min_qty && product.offer_unit_price !== null && quantity >= Number(product.offer_min_qty) ? Number(product.offer_unit_price) : Number(product.price);
 const state = {
   products: [],
   cart: new Map(),
@@ -44,7 +45,7 @@ function whatsappNumber() {
 async function init() {
   const [{ data: products, error }, { data: settings }, { data: shippingRates }] = await Promise.all([
     db.from("products")
-      .select("id,name,slug,description,price,compare_at_price,stock,image_url,gallery_images,video_url,video_source_url,active,created_at")
+      .select("id,name,slug,description,price,compare_at_price,offer_min_qty,offer_unit_price,stock,image_url,gallery_images,video_url,video_source_url,active,created_at")
       .eq("active", true).order("created_at", { ascending: false }),
     db.from("store_settings").select("whatsapp_number,delivery_fee").eq("id", 1).maybeSingle(),
     db.from("shipping_rates").select("city,fee,min_delivery_days,max_delivery_days").eq("active", true).order("city")
@@ -97,6 +98,7 @@ function renderProducts() {
     '<div class="product-order-row"><div class="product-price"><strong>' + money(product.price) + '</strong>' +
     (product.compare_at_price > product.price ? '<del>' + money(product.compare_at_price) + '</del>' : '') +
     '</div><button class="quick-order" type="button" data-add="' + product.id + '" aria-label="Commander ' + escapeHtml(product.name) + '" title="Commander"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h2l2.2 11.2a2 2 0 0 0 2 1.6h8.9a2 2 0 0 0 1.9-1.4L22 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg></button></div>' +
+    (product.offer_min_qty && product.offer_unit_price !== null ? '<div class="quantity-offer">Offre : '+Number(product.offer_min_qty)+' pièces à '+money(product.offer_unit_price)+' / pièce</div>' : '') +
     '<small>' + (product.stock > 0 ? "En stock" : "Disponible sur commande") + '</small>' +
     '<button class="btn btn-primary add-cart" data-add="' + product.id + '">Ajouter au panier +</button>' +
     '<button class="details-button" data-details="' + product.id + '">Voir les détails →</button>' +
@@ -130,7 +132,7 @@ function openProductDetails(product) {
     : [product.image_url].filter(Boolean);
   $("#detailTitle").textContent = product.name;
   $("#detailDescription").innerHTML = formatDescription(product.description, false);
-  $("#detailPrice").textContent = money(product.price);
+  $("#detailPrice").textContent = money(product.price) + (product.offer_min_qty && product.offer_unit_price !== null ? " · Offre dès " + product.offer_min_qty + " pièces : " + money(product.offer_unit_price) + "/pièce" : "");
   $("#detailImage").src = images[0] || "";
   $("#detailImage").classList.remove("zoomed");
   $("#detailImage").onclick = () => $("#detailImage").classList.toggle("zoomed");
@@ -181,7 +183,7 @@ $("#productModal").addEventListener("click", (event) => {
 function renderCart() {
   const items = [...state.cart.values()];
   const count = items.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const subtotal = items.reduce((sum, item) => sum + unitPriceFor(item.product, item.quantity) * item.quantity, 0);
   const city = document.querySelector("#checkoutForm [name=city]")?.value?.trim().toLowerCase() || "";
   const matchedRate = state.shippingRates.find(r => r.city.trim().toLowerCase() === city);
   const delivery = matchedRate ? Number(matchedRate.fee) : Number(state.settings.delivery_fee || 0);
@@ -191,7 +193,7 @@ function renderCart() {
   $("#cartDelivery").textContent = delivery ? money(delivery) : "GRATUITE";
   $("#cartTotal").textContent = money(subtotal + delivery);
   $("#cartItems").innerHTML = items.map((item) =>
-    '<div class="cart-item"><img class="cart-item-image" src="' + escapeHtml(item.product.image_url || '') + '" alt="' + escapeHtml(item.product.name) + '" loading="lazy"><div class="cart-item-info"><b>' + escapeHtml(item.product.name) + '</b><small>' + money(item.product.price) + ' / unité</small><div class="cart-item-controls"><button type="button" data-minus="' + item.product.id + '" aria-label="Diminuer">−</button><span>' + item.quantity + '</span><button type="button" data-plus="' + item.product.id + '" aria-label="Augmenter">+</button><button type="button" class="cart-remove" data-remove="' + item.product.id + '">Supprimer</button></div></div><strong>' + money(item.product.price * item.quantity) + '</strong></div>'
+    '<div class="cart-item"><img class="cart-item-image" src="' + escapeHtml(item.product.image_url || '') + '" alt="' + escapeHtml(item.product.name) + '" loading="lazy"><div class="cart-item-info"><b>' + escapeHtml(item.product.name) + '</b><small>' + money(item.product.price) + ' / unité</small><div class="cart-item-controls"><button type="button" data-minus="' + item.product.id + '" aria-label="Diminuer">−</button><span>' + item.quantity + '</span><button type="button" data-plus="' + item.product.id + '" aria-label="Augmenter">+</button><button type="button" class="cart-remove" data-remove="' + item.product.id + '">Supprimer</button></div></div><strong>' + money(unitPriceFor(item.product, item.quantity) * item.quantity) + '</strong></div>'
   ).join("") || "Votre panier est vide.";
 
   document.querySelectorAll("[data-minus],[data-plus],[data-remove]").forEach((button) => {
@@ -239,7 +241,7 @@ $("#checkoutForm").onsubmit = async (event) => {
   const cityValue = String(form.get("city") || "").trim();
   const matchedRate = state.shippingRates.find(r => r.city.trim().toLowerCase() === cityValue.toLowerCase());
   const delivery = matchedRate ? Number(matchedRate.fee) : Number(state.settings.delivery_fee || 0);
-  let subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  let subtotal = items.reduce((sum, item) => sum + unitPriceFor(item.product, item.quantity) * item.quantity, 0);
   let total = subtotal + delivery;
 
   const orderGroupId = crypto.randomUUID();
@@ -248,15 +250,17 @@ $("#checkoutForm").onsubmit = async (event) => {
 
   try {
     const ids = items.map(item => item.product.id);
-    const { data: latestProducts, error: stockError } = await db.from("products").select("id,name,price,stock,active").in("id", ids);
+    const { data: latestProducts, error: stockError } = await db.from("products").select("id,name,price,stock,active,offer_min_qty,offer_unit_price").in("id", ids);
     if (stockError) throw stockError;
     for (const item of items) {
       const latest = latestProducts.find(p => p.id === item.product.id);
       if (!latest || !latest.active) throw new Error("Le produit " + item.product.name + " n’est plus disponible.");
       if (Number(latest.stock) > 0 && item.quantity > Number(latest.stock)) throw new Error("Stock insuffisant pour " + latest.name + ". Quantité disponible : " + latest.stock);
       item.product.price = Number(latest.price);
+      item.product.offer_min_qty = latest.offer_min_qty;
+      item.product.offer_unit_price = latest.offer_unit_price;
     }
-    subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+    subtotal = items.reduce((sum, item) => sum + unitPriceFor(item.product, item.quantity) * item.quantity, 0);
     total = subtotal + delivery;
     const rows = items.map((item, index) => ({
       order_group_id: orderGroupId,
@@ -267,7 +271,7 @@ $("#checkoutForm").onsubmit = async (event) => {
       product_id: item.product.id,
       product_name: item.product.name,
       quantity: item.quantity,
-      unit_price: item.product.price,
+      unit_price: unitPriceFor(item.product, item.quantity),
       delivery_fee: index === 0 ? delivery : 0,
       total: item.product.price * item.quantity + (index === 0 ? delivery : 0),
       status: "pending",
@@ -279,7 +283,7 @@ $("#checkoutForm").onsubmit = async (event) => {
 
     const message = [
       "Bonjour MAROOC.SHOP, voici ma commande :",
-      ...items.map((item) => item.product.name + " × " + item.quantity + " — " + money(item.product.price * item.quantity)),
+      ...items.map((item) => item.product.name + " × " + item.quantity + " — " + money(unitPriceFor(item.product, item.quantity) * item.quantity)),
       "Sous-total : " + money(subtotal),
       "Livraison : " + (delivery ? money(delivery) : "Gratuite"),
       "Total : " + money(total),
