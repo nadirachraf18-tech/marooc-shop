@@ -75,9 +75,10 @@ function renderProducts() {
         : '<div class="image-placeholder">MAROOC<br><b>SHOP</b></div>') +
     '</div><div class="product-info"><h3>' + escapeHtml(product.name) + '</h3>' +
     '<div class="product-description">' + formatDescription(product.description, true) + '</div>' +
-    '<div class="product-price"><strong>' + money(product.price) + '</strong>' +
+    '<div class="product-order-row"><div class="product-price"><strong>' + money(product.price) + '</strong>' +
     (product.compare_at_price > product.price ? '<del>' + money(product.compare_at_price) + '</del>' : '') +
-    '</div><small>' + (product.stock > 0 ? "En stock" : "Disponible sur commande") + '</small>' +
+    '</div><button class="quick-order" type="button" data-add="' + product.id + '" aria-label="Commander ' + escapeHtml(product.name) + '" title="Commander"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h2l2.2 11.2a2 2 0 0 0 2 1.6h8.9a2 2 0 0 0 1.9-1.4L22 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg></button></div>' +
+    '<small>' + (product.stock > 0 ? "En stock" : "Disponible sur commande") + '</small>' +
     '<button class="btn btn-primary add-cart" data-add="' + product.id + '">Ajouter au panier +</button>' +
     '<button class="details-button" data-details="' + product.id + '">Voir les détails →</button>' +
     '</div></article>'
