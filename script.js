@@ -3,6 +3,20 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const db = createClient(window.MAROOOC_SUPABASE_URL, window.MAROOOC_SUPABASE_KEY);
 const $ = (selector) => document.querySelector(selector);
 const money = (value) => Number(value || 0).toLocaleString("fr-FR") + " DH";
+const trackMetaEvent = (eventName, params = {}) => {
+  if (typeof window.fbq === "function") window.fbq("track", eventName, params);
+};
+const trackCartEvent = (eventName) => {
+  const items = [...state.cart.values()];
+  const value = items.reduce((sum, item) => sum + unitPriceFor(item.product, item.quantity) * item.quantity, 0);
+  trackMetaEvent(eventName, {
+    content_ids: items.map(item => String(item.product.id)),
+    contents: items.map(item => ({ id: String(item.product.id), quantity: item.quantity, item_price: unitPriceFor(item.product, item.quantity) })),
+    content_type: "product",
+    value: Number(value.toFixed(2)),
+    currency: "MAD"
+  });
+};
 const unitPriceFor = (product, quantity = 1) => product.offer_min_qty && product.offer_unit_price !== null && quantity >= Number(product.offer_min_qty) ? Number(product.offer_unit_price) : Number(product.price);
 const state = {
   products: [],
@@ -111,6 +125,13 @@ function renderProducts() {
       const existing = state.cart.get(product.id);
       const quantity = Math.min(20, (existing?.quantity || 0) + 1);
       state.cart.set(product.id, { product, quantity });
+      trackMetaEvent("AddToCart", {
+        content_ids: [String(product.id)],
+        contents: [{ id: String(product.id), quantity: 1, item_price: unitPriceFor(product, quantity) }],
+        content_type: "product",
+        value: Number(unitPriceFor(product, quantity).toFixed(2)),
+        currency: "MAD"
+      });
       renderCart();
       $("#cartDrawer").classList.remove("hidden");
     };
@@ -127,6 +148,13 @@ function renderProducts() {
 
 function openProductDetails(product) {
   if (!product) return;
+  trackMetaEvent("ViewContent", {
+    content_ids: [String(product.id)],
+    content_name: product.name,
+    content_type: "product",
+    value: Number(Number(product.price || 0).toFixed(2)),
+    currency: "MAD"
+  });
   const images = Array.isArray(product.gallery_images) && product.gallery_images.length
     ? product.gallery_images
     : [product.image_url].filter(Boolean);
@@ -162,6 +190,13 @@ function openProductDetails(product) {
     const existing = state.cart.get(product.id);
     const quantity = Math.min(20, (existing?.quantity || 0) + 1);
     state.cart.set(product.id, { product, quantity });
+    trackMetaEvent("AddToCart", {
+      content_ids: [String(product.id)],
+      contents: [{ id: String(product.id), quantity: 1, item_price: unitPriceFor(product, quantity) }],
+      content_type: "product",
+      value: Number(unitPriceFor(product, quantity).toFixed(2)),
+      currency: "MAD"
+    });
     renderCart();
     $("#productModal").classList.add("hidden");
     $("#cartDrawer").classList.remove("hidden");
@@ -218,6 +253,7 @@ $("#year").textContent = new Date().getFullYear();
 $("#cartOpen").onclick = () => $("#cartDrawer").classList.remove("hidden");
 $("#cartClose").onclick = () => $("#cartDrawer").classList.add("hidden");
 $("#checkoutStart").onclick = () => {
+  trackCartEvent("InitiateCheckout");
   $("#cartDrawer").classList.add("hidden");
   $("#checkoutModal").classList.remove("hidden");
 };
