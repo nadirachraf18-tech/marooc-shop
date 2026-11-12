@@ -89,6 +89,11 @@ async function init() {
   }
   $("#contactWhatsApp").href = "https://wa.me/" + whatsappNumber();
   renderProducts();
+  const requestedSlug = decodeURIComponent(location.pathname.match(/^\/product\/([^/]+)/)?.[1] || new URLSearchParams(location.search).get("product") || "");
+  if (requestedSlug) {
+    const product = state.products.find(p => (p.slug || String(p.id)) === requestedSlug);
+    if (product) openProductDetails(product, false);
+  }
 }
 
 function renderProducts() {
@@ -115,7 +120,7 @@ function renderProducts() {
     (product.offer_min_qty && product.offer_unit_price !== null ? '<div class="quantity-offer">Offre : '+Number(product.offer_min_qty)+' pièces à '+money(product.offer_unit_price)+' / pièce</div>' : '') +
     '<small>' + (product.stock > 0 ? "En stock" : "Disponible sur commande") + '</small>' +
     '<button class="btn btn-primary add-cart" data-add="' + product.id + '">Ajouter au panier +</button>' +
-    '<button class="details-button" data-details="' + product.id + '">Voir les détails →</button>' +
+    '<a class="details-button" data-details="' + product.id + '" href="/product/' + encodeURIComponent(product.slug || product.id) + '">Voir le produit →</a>' +
     '</div></article>'
   ).join("") : '<p class="empty-products">Aucun produit disponible.</p>';
 
@@ -138,15 +143,16 @@ function renderProducts() {
   });
 
   document.querySelectorAll("[data-details]").forEach((button) => {
-    button.onclick = () => {
+    button.onclick = (event) => {
+      event.preventDefault();
       const product = state.products.find((item) => item.id === button.dataset.details);
-      openProductDetails(product);
+      openProductDetails(product, true);
     };
   });
 }
 
 
-function openProductDetails(product) {
+function openProductDetails(product, updateUrl = true) {
   if (!product) return;
   trackMetaEvent("ViewContent", {
     content_ids: [String(product.id)],
@@ -159,6 +165,8 @@ function openProductDetails(product) {
     ? product.gallery_images
     : [product.image_url].filter(Boolean);
   $("#detailTitle").textContent = product.name;
+  document.title = product.name + " | MAROOC.SHOP";
+  if (updateUrl) history.pushState({ productSlug: product.slug || String(product.id) }, "", "/product/" + encodeURIComponent(product.slug || product.id));
   $("#detailDescription").innerHTML = formatDescription(product.description, false);
   $("#detailPrice").textContent = money(product.price) + (product.offer_min_qty && product.offer_unit_price !== null ? " · Offre dès " + product.offer_min_qty + " pièces : " + money(product.offer_unit_price) + "/pièce" : "");
   $("#detailImage").src = images[0] || "";
@@ -207,11 +215,15 @@ function openProductDetails(product) {
 $("#detailClose").onclick = () => {
   $("#detailVideo").pause();
   $("#productModal").classList.add("hidden");
+  if (location.pathname.startsWith("/product/")) history.pushState({}, "", "/");
+  document.title = "MAROOC.SHOP — Boutique en ligne";
 };
 $("#productModal").addEventListener("click", (event) => {
   if (event.target.id === "productModal") {
     $("#detailVideo").pause();
     $("#productModal").classList.add("hidden");
+    if (location.pathname.startsWith("/product/")) history.pushState({}, "", "/");
+    document.title = "MAROOC.SHOP — Boutique en ligne";
   }
 });
 
@@ -247,6 +259,15 @@ function renderCart() {
   $("#checkoutStart").disabled = !count;
 }
 
+window.addEventListener("popstate", () => {
+  const slug = decodeURIComponent(location.pathname.match(/^\/product\/([^/]+)/)?.[1] || "");
+  const product = slug ? state.products.find(p => (p.slug || String(p.id)) === slug) : null;
+  if (product) openProductDetails(product, false);
+  else {
+    $("#productModal").classList.add("hidden");
+    document.title = "MAROOC.SHOP — Boutique en ligne";
+  }
+});
 $("#productSearch").oninput = renderProducts;
 $("#sortProducts").onchange = renderProducts;
 $("#year").textContent = new Date().getFullYear();
