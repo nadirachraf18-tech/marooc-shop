@@ -120,9 +120,31 @@ function renderProducts() {
     (product.offer_min_qty && product.offer_unit_price !== null ? '<div class="quantity-offer">Offre : '+Number(product.offer_min_qty)+' pièces à '+money(product.offer_unit_price)+' / pièce</div>' : '') +
     '<small>' + (product.stock > 0 ? "En stock" : "Disponible sur commande") + '</small>' +
     '<button class="btn btn-primary add-cart" data-add="' + product.id + '">Ajouter au panier +</button>' +
+    '<button class="btn commander-now" type="button" data-buy-now="' + product.id + '">Commander maintenant</button>' +
     '<a class="details-button" data-details="' + product.id + '" href="/product/' + encodeURIComponent(product.slug || product.id) + '">Voir le produit →</a>' +
     '</div></article>'
   ).join("") : '<p class="empty-products">Aucun produit disponible.</p>';
+
+  document.querySelectorAll("[data-buy-now]").forEach((button) => {
+    button.onclick = () => {
+      const product = state.products.find((item) => item.id === button.dataset.buyNow);
+      if (!product) return;
+      const existing = state.cart.get(product.id);
+      const quantity = Math.min(20, (existing?.quantity || 0) + 1);
+      state.cart.set(product.id, { product, quantity });
+      trackMetaEvent("AddToCart", {
+        content_ids: [String(product.id)],
+        contents: [{ id: String(product.id), quantity: 1, item_price: unitPriceFor(product, quantity) }],
+        content_type: "product",
+        value: Number(unitPriceFor(product, quantity).toFixed(2)),
+        currency: "MAD"
+      });
+      renderCart();
+      $("#productModal").classList.add("hidden");
+      $("#cartDrawer").classList.add("hidden");
+      $("#checkoutStart").click();
+    };
+  });
 
   document.querySelectorAll("[data-add]").forEach((button) => {
     button.onclick = () => {
