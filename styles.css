@@ -114,3 +114,7 @@ footer{background:#090806;color:#F8E7B5;border-top:2px solid #B88616}
 footer .brand{color:#fff}
 .product-card,.checkout-modal,.product-modal,.cart-drawer{border-color:#EAD9A8}
 .quantity-offer{background:#FFF0C2;color:#79520A;border:1px solid #E5C66D}
+
+/* Direct checkout button below add-to-cart */
+.product-info .commander-now{display:flex;width:100%;min-height:44px;margin-top:8px;align-items:center;justify-content:center;border:1px solid #B88616;border-radius:12px;background:linear-gradient(135deg,#FFE7A0,#D6A52B);color:#090806;font-weight:800;cursor:pointer}
+.product-info .commander-now:hover{filter:brightness(1.04);transform:translateY(-1px)}
